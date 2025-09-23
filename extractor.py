@@ -23,3 +23,23 @@ def extractPose(F):
     print(d)
 
     return ret
+
+# ORB (Oriented FAST Rotated BRIEF) feature extraction for real-time purpose
+def extract(img):
+
+    orb = cv2.ORB_create()
+
+    # Convert to grayscale
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # detection of features
+
+    points = cv2.goodFeaturesToTrack(gray_img, 8000, qualityLevel=0.01, minDistance=10)
+    if points is None:
+        return np.array([]), None
+    # Features description
+
+    kpts = [cv2.KeyPoint(f[0][0], f[0][1], 20) for f in points]
+    kpts, des = orb.compute(gray_img, kpts)
+    
+    return np.array([(kp.pt[0], kp.pt[1]) for kp in kpts]), des
