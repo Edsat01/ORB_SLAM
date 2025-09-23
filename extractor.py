@@ -57,3 +57,49 @@ def denormalize(K, pt):
     ret = np.dot(K, [pt[0], pt[1], 1.0])
     ret /= ret[2]
     return int(round(ret[0])), int(round(ret[1]))
+
+class Matcher(object):
+    def __init__(self):
+        self.last = None
+
+# define a function responsible of matching frames features
+def match_frames(f1, f2):
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+
+    matches = bf.knnMatch(f1.des, f2.des, k=2)
+
+    # Lowe's ratio test
+    ret =[]
+    idx1, idx2 = [], []
+    for m, n in matches:
+        if m.distance < 0.75 * n.distance:
+            p1 = f1.pts[m.queryIdx]
+            p2 = f2.pts[m.trainIdx]
+
+            # Make distance test to ensure that the euclidian distance
+            # between p1 and p2 is less than 0.1
+
+            if np.linalg.norm(p1, p2) < 0.1:
+                # keep idxs
+                idx1.append(m.queryIdx)
+                idx2.append(m.trainIdx)
+                ret.append((p1, p2))
+
+                pass
+    assert len(ret) >= 8
+    ret = np.array(ret)
+    idx1 = np.array(idx1)
+    idx2 = np.array(idx2)
+
+    # Fit matrix
+    model, inliers = ransac((ret[:, 0],
+                             ret[:, 1]), FundamentalMatrixTransform,
+                             min_samples=8, residual_threshold=0.005,
+                             max_trials=2000)
+    # Ignore outliers
+
+    ret = ret[inliers]
+    Rt =  extractPose(model.params)
+
+    return idx1[inliers], idx2[inliers], Rt
+
