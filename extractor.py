@@ -43,3 +43,17 @@ def extract(img):
     kpts, des = orb.compute(gray_img, kpts)
     
     return np.array([(kp.pt[0], kp.pt[1]) for kp in kpts]), des
+
+def add_ones(x):
+    # Convert Nx2 array to Nx3 array where each point is represented in
+    # Homogeneous coordinates as [x, y, 1]
+    return np.concatenate([x, np.ones((x.shape[0], 1))], axis =1)
+
+def normalize(Kinv, pts):
+    # Convert pixel coordinates to normalized image coordinates 
+    return np.dot(Kinv, add_ones(pts).T).T[:, 0:2]
+
+def denormalize(K, pt):
+    ret = np.dot(K, [pt[0], pt[1], 1.0])
+    ret /= ret[2]
+    return int(round(ret[0])), int(round(ret[1]))
