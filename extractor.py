@@ -1,3 +1,4 @@
+from socket import IPV6_RTHDR
 import cv2
 import numpy as np
 from skimage.measure import ransac
@@ -5,7 +6,7 @@ from skimage.transform import FundamentalMatrixTransform
 
 # Extraction of the camera pose from the fundamental matrix
 def extractPose(F):
-    W  = np.mat([[0,-1,0],[1,0,0],[0,0,1]])
+    W  = np.array([[0,-1,0],[1,0,0],[0,0,1]])
     U, d, Vt = np.linalg.svd(F)
     assert np.linalg.det(U) > 0
 
@@ -102,4 +103,21 @@ def match_frames(f1, f2):
     Rt =  extractPose(model.params)
 
     return idx1[inliers], idx2[inliers], Rt
+
+class Frame(object):
+    def __init__(self, mapp, img, K):
+        self.K = K
+        self.kinv = np.linalg.inv(self.K)
+        self.pose = np.eye(4)
+
+        self.id = len(mapp.frames)
+        mapp.frames.append(self)
+
+        pts, self.des = extract(img)
+
+        if self.des is not None and len(self.des) > 0:
+            self.pts = normalize(self.kinv, pts)
+        else:
+            self.pts = np.array([])
+
 
